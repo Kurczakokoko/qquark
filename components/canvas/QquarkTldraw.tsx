@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Tldraw, type Editor } from "tldraw";
+import { Tldraw, type Editor, DefaultColorStyle } from "tldraw";
 import { usePenInputFilter } from "./usePenInputFilter";
 
 /**
@@ -30,10 +30,16 @@ export function QquarkTldraw({ onMount, onChange }: QquarkTldrawProps) {
       editorRef.current = editor;
       setEditorInstance(editor);
 
-      // Start in draw tool — this feels right for a whiteboard
+      // Force dark mode that matches the rest of qquark
+      editor.user.updateUserPreferences({ colorScheme: 'dark' });
+
+      // Default drawing color to white so it looks good on dark background immediately
+      editor.setStyleForNextShapes(DefaultColorStyle, 'white');
+
+      // Start in draw tool
       editor.setCurrentTool("draw");
 
-      // Future work (very important):
+      // Future work:
       // - Load canonical board data into the store
       // - Set up proper camera restoration
       // - Bind to Yjs when in a collaborative session
@@ -42,7 +48,6 @@ export function QquarkTldraw({ onMount, onChange }: QquarkTldrawProps) {
         onMount(editor);
       }
 
-      // Light change listener (we'll make this smarter later)
       const unsubscribe = editor.store.listen(() => {
         if (onChange && editorRef.current) {
           onChange(editorRef.current);
@@ -57,12 +62,11 @@ export function QquarkTldraw({ onMount, onChange }: QquarkTldrawProps) {
   );
 
   return (
-    <div className="absolute inset-0 bg-[#0f0f0f] overflow-hidden">
+    <div className="h-full w-full bg-[#0a0a0a]">
       <Tldraw
         onMount={handleMount}
-        // We intentionally show tldraw's UI now so users can actually draw.
-        // It's kept relatively calm via our global dark styling.
-        // The custom pen input filter (above) still provides the special finger-vs-pen behavior.
+        // We show tldraw's UI so the board is actually usable.
+        // Dark theme + white default stroke is configured in handleMount.
         persistenceKey="qquark-local-cache"
       />
     </div>

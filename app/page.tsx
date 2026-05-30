@@ -207,7 +207,7 @@ export default function QquarkApp() {
   // Main canvas experience
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-zinc-950 text-zinc-200">
-      <header className="z-50 flex h-11 items-center justify-between border-b border-white/10 bg-zinc-950/95 px-4 text-sm backdrop-blur">
+      <header className="z-50 flex h-11 items-center justify-between border-b border-white/10 bg-[#0a0a0a] px-4 text-sm">
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-2 shrink-0">
             <div className="font-semibold tracking-[-0.02em] text-lg">qquark</div>
@@ -258,7 +258,7 @@ export default function QquarkApp() {
       </header>
 
       <div
-        className="relative flex-1"
+        className="relative flex-1 min-h-0 overflow-hidden bg-[#0a0a0a]"
         onDragOver={(e) => e.preventDefault()}
         onDrop={async (e) => {
           e.preventDefault();
@@ -289,7 +289,7 @@ export default function QquarkApp() {
         onChange={handleFileSelected}
       />
 
-      <div className="z-50 flex h-5 items-center justify-center border-t border-white/10 bg-zinc-950 text-[10px] text-white/40">
+      <div className="z-50 flex h-5 items-center justify-center border-t border-white/10 bg-[#0a0a0a] text-[10px] text-white/40">
         Boards live as JSON on your device. AI works through the connector protocol.
       </div>
     </div>

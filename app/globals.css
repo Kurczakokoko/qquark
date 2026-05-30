@@ -29,9 +29,35 @@ body {
   font-family: var(--font-geist-sans);
 }
 
-/* tldraw canvas container overrides for qquark feel */
+/* === qquark dark theme for tldraw === */
+
+/* Main editor background */
 .tldraw__editor {
-  background: #0f0f0f !important;
+  background: #0a0a0a !important;
+}
+
+/* The actual infinite canvas / page background */
+.tldraw__canvas {
+  background: #111111 !important;
+}
+
+/* This is the page content area inside the canvas */
+.tl-page {
+  background: #111111 !important;
+}
+
+/* Make sure the UI chrome also feels dark and consistent */
+.tldraw__main .tlui-toolbar,
+.tldraw__main .tlui-style-panel,
+.tldraw__main .tlui-menu {
+  background: #1a1a1a !important;
+  border-color: #2a2a2a !important;
+}
+
+/* Default stroke/text should be visible on dark bg.
+   We also set this programmatically in the editor, but CSS helps as fallback. */
+.tl-shapes .tl-shape {
+  --color-text: #f1f1f1;
 }
 
 /* Minimal, high-quality UI chrome */
