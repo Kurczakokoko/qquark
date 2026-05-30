@@ -182,29 +182,9 @@ export default function QquarkApp() {
   }, [editor, board]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
-  // When user is still on welcome screen
-  if (showWelcome) {
-    return (
-      <div className="h-screen bg-zinc-950 text-zinc-200">
-        <WelcomeScreen
-          onStartNew={handleNewBoard}
-          onOpenFile={handleOpenFile}
-          isMobile={isMobile}
-          onInstall={isMobile ? handleInstallPWA : undefined}
-          canInstall={canInstall}
-        />
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,.qquark.json"
-          className="hidden"
-          onChange={handleFileSelected}
-        />
-      </div>
-    );
-  }
-
-  // Main canvas experience
+  // Always render the main shell.
+  // WelcomeScreen is shown as an overlay so the Tldraw canvas stays mounted and stable.
+  // This prevents the "appears then gets nuked to grey" behavior caused by mounting/unmounting the heavy editor.
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-zinc-950 text-zinc-200">
       <header className="z-50 flex h-11 items-center justify-between border-b border-white/10 bg-[#0a0a0a] px-4 text-sm">
@@ -257,6 +237,7 @@ export default function QquarkApp() {
         <div className="text-[10px] text-white/40 font-mono shrink-0">local • private</div>
       </header>
 
+      {/* Canvas area - this stays mounted at all times for stability */}
       <div
         className="relative flex-1 min-h-0 overflow-hidden bg-[#0a0a0a]"
         onDragOver={(e) => e.preventDefault()}
@@ -270,6 +251,7 @@ export default function QquarkApp() {
             const loaded = boardFromJsonString(text);
             setBoard(loaded);
             if (editor) loadBoardIntoTldraw(editor, loaded);
+            setShowWelcome(false);
             toast.success(`Opened "${loaded.name}" via drag & drop`);
           } catch {
             toast.error("Could not open dropped file");
@@ -277,8 +259,24 @@ export default function QquarkApp() {
         }}
       >
         <ErrorBoundary>
-          <QquarkTldraw onMount={handleEditorMount} />
+          <QquarkTldraw 
+            key={board.id}   // Stable key per board - clean remount only when we actually want a new board
+            onMount={handleEditorMount} 
+          />
         </ErrorBoundary>
+
+        {/* Welcome screen as overlay - does NOT unmount the canvas underneath */}
+        {showWelcome && (
+          <div className="absolute inset-0 z-50">
+            <WelcomeScreen
+              onStartNew={handleNewBoard}
+              onOpenFile={handleOpenFile}
+              isMobile={isMobile}
+              onInstall={isMobile ? handleInstallPWA : undefined}
+              canInstall={canInstall}
+            />
+          </div>
+        )}
       </div>
 
       <input
