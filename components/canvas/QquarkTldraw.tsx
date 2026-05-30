@@ -60,7 +60,9 @@ export function QquarkTldraw({ onMount, onChange }: QquarkTldrawProps) {
     <div className="absolute inset-0 bg-[#0f0f0f] overflow-hidden">
       <Tldraw
         onMount={handleMount}
-        hideUi={true}
+        // We intentionally show tldraw's UI now so users can actually draw.
+        // It's kept relatively calm via our global dark styling.
+        // The custom pen input filter (above) still provides the special finger-vs-pen behavior.
         persistenceKey="qquark-local-cache"
       />
     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { QquarkTldraw } from "@/components/canvas/QquarkTldraw";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { WelcomeScreen } from "@/components/WelcomeScreen";
 import type { Editor } from "tldraw";
 import {
   createEmptyBoard,
@@ -26,7 +27,65 @@ export default function QquarkApp() {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [isConnectorActive, setIsConnectorActive] = useState(false);
 
+  // Onboarding / Welcome state
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  // Simple mobile detection (for PWA prompt + different welcome copy)
+  const [isMobile, setIsMobile] = useState(false);
+
+  // PWA install prompt handling
+  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  const [canInstall, setCanInstall] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const isTouch = navigator.maxTouchPoints ? navigator.maxTouchPoints > 1 : false;
+      setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || isTouch);
+    };
+    checkMobile();
+
+    // Capture the install prompt event (important for good PWA UX)
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstall(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) {
+      // On iOS Safari we can't programmatically trigger it — user must use Share → Add to Home Screen
+      if (isMobile) {
+        alert(
+          "On iPhone/iPad: Tap the Share button in Safari, then scroll down and choose “Add to Home Screen”."
+        );
+      }
+      return;
+    }
+
+    // The beforeinstallprompt event has prompt() and userChoice
+    const promptEvent = deferredPrompt as unknown as {
+      prompt?: () => void;
+      userChoice?: Promise<{ outcome: string }>;
+    };
+    promptEvent.prompt?.();
+    try {
+      const result = await promptEvent.userChoice;
+      if (result && result.outcome === "accepted") {
+        toast.success("Thanks! qquark is now installed.");
+      }
+    } catch {}
+    setDeferredPrompt(null);
+    setCanInstall(false);
+  };
 
   const handleEditorMount = (ed: Editor) => {
     setEditor(ed);
@@ -35,14 +94,22 @@ export default function QquarkApp() {
 
   // === Real Local File Operations (core promise) ===
 
+  const startUsingCanvas = () => {
+    setShowWelcome(false);
+  };
+
   const handleNewBoard = () => {
     const newBoard = createEmptyBoard();
     setBoard(newBoard);
     if (editor) loadBoardIntoTldraw(editor, newBoard);
+    startUsingCanvas();
     toast.success("New board created");
   };
 
-  const handleOpenFile = () => fileInputRef.current?.click();
+  const handleOpenFile = () => {
+    // If we're still on welcome, opening a file should also enter the app
+    fileInputRef.current?.click();
+  };
 
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,6 +120,7 @@ export default function QquarkApp() {
       const loaded = boardFromJsonString(text);
       setBoard(loaded);
       if (editor) loadBoardIntoTldraw(editor, loaded);
+      startUsingCanvas();
       toast.success(`Opened "${loaded.name}"`);
     } catch (err) {
       console.error(err);
@@ -114,6 +182,29 @@ export default function QquarkApp() {
   }, [editor, board]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
+  // When user is still on welcome screen
+  if (showWelcome) {
+    return (
+      <div className="h-screen bg-zinc-950 text-zinc-200">
+        <WelcomeScreen
+          onStartNew={handleNewBoard}
+          onOpenFile={handleOpenFile}
+          isMobile={isMobile}
+          onInstall={isMobile ? handleInstallPWA : undefined}
+          canInstall={canInstall}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,.qquark.json"
+          className="hidden"
+          onChange={handleFileSelected}
+        />
+      </div>
+    );
+  }
+
+  // Main canvas experience
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-zinc-950 text-zinc-200">
       <header className="z-50 flex h-11 items-center justify-between border-b border-white/10 bg-zinc-950/95 px-4 text-sm backdrop-blur">
