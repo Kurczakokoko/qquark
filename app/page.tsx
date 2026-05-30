@@ -36,7 +36,10 @@ import { toast } from "sonner";
  */
 export default function QquarkApp() {
   const [board, setBoard] = useState<Board>(() => createEmptyBoard());
-  const [editor, setEditor] = useState<Editor | null>(null);
+  // Use a ref for the editor instead of state for init stability.
+  // We only need the editor instance for imperative operations (save, export, etc.).
+  // Setting it as state during mount was causing the canvas to be nuked.
+  const editorRef = useRef<Editor | null>(null);
   const [isConnectorActive, setIsConnectorActive] = useState(false);
 
   // Onboarding / Welcome state
@@ -100,7 +103,11 @@ export default function QquarkApp() {
   };
 
   const handleEditorMount = (ed: Editor) => {
-    setEditor(ed);
+    // IMPORTANT: Do NOT call setEditor here synchronously during tldraw's critical init phase.
+    // Setting state in the parent while the editor is bootstrapping its canvases is a common cause
+    // of the canvas being destroyed after ~1 second.
+    // We will only store a ref for operations that truly need it later.
+    editorRef.current = ed;
     loadBoardIntoTldraw(ed, board);
   };
 
@@ -113,7 +120,7 @@ export default function QquarkApp() {
   const handleNewBoard = () => {
     const newBoard = createEmptyBoard();
     setBoard(newBoard);
-    if (editor) loadBoardIntoTldraw(editor, newBoard);
+    if (editorRef.current) loadBoardIntoTldraw(editorRef.current, newBoard);
     startUsingCanvas();
     toast.success("New board created");
   };
@@ -131,7 +138,7 @@ export default function QquarkApp() {
       const text = await file.text();
       const loaded = boardFromJsonString(text);
       setBoard(loaded);
-      if (editor) loadBoardIntoTldraw(editor, loaded);
+      if (editorRef.current) loadBoardIntoTldraw(editorRef.current, loaded);
       startUsingCanvas();
       toast.success(`Opened "${loaded.name}"`);
     } catch (err) {
@@ -142,12 +149,12 @@ export default function QquarkApp() {
   };
 
   const handleSave = () => {
-    if (!editor) {
+    if (!editorRef.current) {
       toast.error("Canvas not ready");
       return;
     }
 
-    const exportedBoard = exportTldrawToBoard(editor, board);
+    const exportedBoard = exportTldrawToBoard(editorRef.current, board);
     setBoard(exportedBoard);
 
     const json = boardToJsonString(exportedBoard);
@@ -167,8 +174,8 @@ export default function QquarkApp() {
   };
 
   const handleExportToAI = () => {
-    if (!editor) return;
-    const exported = exportTldrawToBoard(editor, board);
+    if (!editorRef.current) return;
+    const exported = exportTldrawToBoard(editorRef.current, board);
     if (process.env.NODE_ENV === "development") {
       console.log("[qquark] Board exported for AI:", exported);
     }
@@ -191,7 +198,8 @@ export default function QquarkApp() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [editor, board]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [board]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Note: We intentionally removed 'editor' from deps. We read from ref inside handleSave.
 
 
   // Clean welcome screen (no leaking tldraw UI).
@@ -282,7 +290,7 @@ export default function QquarkApp() {
             const text = await file.text();
             const loaded = boardFromJsonString(text);
             setBoard(loaded);
-            if (editor) loadBoardIntoTldraw(editor, loaded);
+            if (editorRef.current) loadBoardIntoTldraw(editorRef.current, loaded);
             toast.success(`Opened "${loaded.name}" via drag & drop`);
           } catch {
             toast.error("Could not open dropped file");
