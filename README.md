@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# qquark
 
-## Getting Started
+**A minimal, local-first, open-source collaborative infinite whiteboard that gets its real power from external AI chatbots via a clean connector protocol.**
 
-First, run the development server:
+## Philosophy (Non-Negotiable)
+
+- Extremely minimal core. No feature bloat.
+- Boards are strictly local — stored as JSON files on your device. Primary persistence is file export/import.
+- No central database owns your whiteboards.
+- All serious AI work happens outside the app through connectors to *your* subscriptions (Grok, Claude, ChatGPT, etc.).
+- Designed first for personal + small trusted groups.
+- Fast, simple, and expandable through the connector protocol.
+
+## The Connector (The Important Part)
+
+qquark's killer feature is the ability for your existing AI chatbots to:
+
+1. Read the current board state (structured + optional filtered subsets).
+2. Request high-quality screenshots of **any specific region** — this is deliberately powerful for vision models reading handwriting and rough sketches.
+3. Apply precise, step-by-step edits that appear live on the canvas.
+4. Work like a collaborator (visible actions, natural pacing).
+
+You start a connector session, give your chatbot a token, and it can control the board with high reliability.
+
+See `docs/connector-protocol.md` for the current specification.
+
+## Current Status
+
+This is early, high-quality foundation work.
+
+- Canonical board data model + lossless JSON serialization (`lib/board`)
+- Live connector protocol types + validation (`lib/connector`)
+- Next.js 16 + tldraw + Yjs + PartyKit prepared
+- Excellent mobile + Apple Pencil support is a priority (finger pan, pen draw)
+- Real-time multiplayer and the live AI connector are the next major verticals
+
+## Getting Started (Developers)
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Next.js 16 (Vercel)
+- tldraw (Hobby license)
+- Yjs + PartyKit for real-time + connector relay
+- Strict TypeScript + Zod for protocol safety
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## License
 
-## Learn More
+MIT (with tldraw under its Hobby license terms).
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built with care. Boards belong to you. AI stays where you already trust it.
