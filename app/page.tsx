@@ -1,10 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { QquarkTldraw } from "@/components/canvas/QquarkTldraw";
+import dynamic from "next/dynamic";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import type { Editor } from "tldraw";
+
+// Dynamically import the tldraw wrapper with SSR disabled.
+// This is the most reliable way to prevent hydration and StrictMode double-mount issues
+// that cause tldraw to appear for a second then get nuked to a grey screen.
+const QquarkTldraw = dynamic(
+  () => import("@/components/canvas/QquarkTldraw").then((mod) => mod.QquarkTldraw),
+  { 
+    ssr: false,
+    // Show a matching dark background while the heavy tldraw bundle loads
+    loading: () => <div className="h-full w-full bg-[#0a0a0a]" /> 
+  }
+);
 import {
   createEmptyBoard,
   boardToJsonString,
@@ -182,9 +194,30 @@ export default function QquarkApp() {
   }, [editor, board]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
-  // Always render the main shell.
-  // WelcomeScreen is shown as an overlay so the Tldraw canvas stays mounted and stable.
-  // This prevents the "appears then gets nuked to grey" behavior caused by mounting/unmounting the heavy editor.
+  // Clean welcome screen (no leaking tldraw UI).
+  // Reverted from the overlay experiment because it caused the board toolbar to show behind welcome.
+  if (showWelcome) {
+    return (
+      <div className="h-screen bg-zinc-950 text-zinc-200">
+        <WelcomeScreen
+          onStartNew={handleNewBoard}
+          onOpenFile={handleOpenFile}
+          isMobile={isMobile}
+          onInstall={isMobile ? handleInstallPWA : undefined}
+          canInstall={canInstall}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,.qquark.json"
+          className="hidden"
+          onChange={handleFileSelected}
+        />
+      </div>
+    );
+  }
+
+  // Main canvas experience
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-zinc-950 text-zinc-200">
       <header className="z-50 flex h-11 items-center justify-between border-b border-white/10 bg-[#0a0a0a] px-4 text-sm">
@@ -237,7 +270,6 @@ export default function QquarkApp() {
         <div className="text-[10px] text-white/40 font-mono shrink-0">local • private</div>
       </header>
 
-      {/* Canvas area - this stays mounted at all times for stability */}
       <div
         className="relative flex-1 min-h-0 overflow-hidden bg-[#0a0a0a]"
         onDragOver={(e) => e.preventDefault()}
@@ -251,7 +283,6 @@ export default function QquarkApp() {
             const loaded = boardFromJsonString(text);
             setBoard(loaded);
             if (editor) loadBoardIntoTldraw(editor, loaded);
-            setShowWelcome(false);
             toast.success(`Opened "${loaded.name}" via drag & drop`);
           } catch {
             toast.error("Could not open dropped file");
@@ -259,24 +290,8 @@ export default function QquarkApp() {
         }}
       >
         <ErrorBoundary>
-          <QquarkTldraw 
-            key={board.id}   // Stable key per board - clean remount only when we actually want a new board
-            onMount={handleEditorMount} 
-          />
+          <QquarkTldraw onMount={handleEditorMount} />
         </ErrorBoundary>
-
-        {/* Welcome screen as overlay - does NOT unmount the canvas underneath */}
-        {showWelcome && (
-          <div className="absolute inset-0 z-50">
-            <WelcomeScreen
-              onStartNew={handleNewBoard}
-              onOpenFile={handleOpenFile}
-              isMobile={isMobile}
-              onInstall={isMobile ? handleInstallPWA : undefined}
-              canInstall={canInstall}
-            />
-          </div>
-        )}
       </div>
 
       <input

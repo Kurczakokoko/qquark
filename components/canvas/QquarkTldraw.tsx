@@ -62,7 +62,7 @@ export function QquarkTldraw({ onMount, onChange }: QquarkTldrawProps) {
   );
 
   return (
-    <div className="h-full w-full bg-[#0a0a0a]">
+    <div className="h-full w-full bg-[#0a0a0a] relative">
       <Tldraw
         onMount={handleMount}
         // We show tldraw's UI so the board is actually usable.
